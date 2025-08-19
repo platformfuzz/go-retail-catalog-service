@@ -1,0 +1,8 @@
+# Minimal golangci-lint configuration
+version: "2"
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck

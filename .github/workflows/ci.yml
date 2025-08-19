@@ -1,0 +1,238 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths-ignore:
+      - "**.md"
+      - "LICENSE"
+      - ".gitignore"
+      - ".vscode/**"
+      - ".devcontainer/**"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  GO_VERSION: "1.24"
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+  checks: write
+  statuses: write
+  packages: write
+
+jobs:
+  golangci-lint:
+    uses: actionsforge/actions-golangci-lint/.github/workflows/golangci-lint.yml@v0
+
+  govulncheck:
+    uses: actionsforge/actions-govulncheck/.github/workflows/govulncheck.yml@v0
+
+  test:
+    uses: actionsforge/actions-go-test/.github/workflows/go-test.yml@v0
+    with:
+      test-pattern: "./..."
+
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Check go mod tidy
+        run: |
+          go mod tidy
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ go.mod or go.sum has uncommitted changes"
+            git diff
+            exit 1
+          fi
+          echo "✅ go.mod is clean"
+
+      - name: Build binary
+        run: go build -v -o bin/catalog-service main.go
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate container build
+        run: |
+          # Test that the container builds successfully
+          docker build -t retail-catalog-service:test .
+          echo "✅ Container builds successfully"
+
+      - name: Validate container health check
+        run: |
+          # Test container health check
+          docker run -d --name test-container retail-catalog-service:test
+
+          # Wait for container to start and health check to become available
+          echo "Waiting for container to start and health check to become available..."
+          for i in {1..60}; do
+            if docker ps --filter "name=test-container" --filter "status=running" --format "{{.Names}}" | grep -q "test-container"; then
+              echo "Container is running, waiting for health check..."
+              sleep 5
+
+              # Check if health check is available
+              HEALTH_STATUS=$(docker inspect test-container --format='{{.State.Health.Status}}' 2>/dev/null || echo "")
+              if [ -n "$HEALTH_STATUS" ]; then
+                echo "Health check is available: $HEALTH_STATUS"
+                # Wait for health check to complete
+                if [ "$HEALTH_STATUS" = "healthy" ]; then
+                  echo "✅ Container health check passed"
+                  break
+                elif [ "$HEALTH_STATUS" = "starting" ]; then
+                  echo "Health check still starting, waiting..."
+                  continue
+                else
+                  echo "Health check status: $HEALTH_STATUS"
+                  break
+                fi
+              fi
+            else
+              echo "Container failed to start"
+              docker logs test-container
+              exit 1
+            fi
+          done
+
+          # Final health check
+          HEALTH_STATUS=$(docker inspect test-container --format='{{.State.Health.Status}}')
+          echo "Final health status: $HEALTH_STATUS"
+
+          if [ "$HEALTH_STATUS" = "healthy" ]; then
+            echo "✅ Container health check passed"
+          else
+            echo "❌ Container health check failed: $HEALTH_STATUS"
+            docker logs test-container
+            exit 1
+          fi
+
+          docker stop test-container
+          docker rm test-container
+          echo "✅ Container validation completed successfully"
+
+      - name: Security scan
+        run: |
+          # Basic security checks
+          echo "🔍 Checking for common security issues..."
+
+          # Check for hardcoded secrets (basic check)
+          if grep -r "password\|secret\|key\|token" . --exclude="*.go" --exclude="*.md" --exclude="*.yml" --exclude="*.yaml" --exclude="*.json" --exclude="*.txt" --exclude="*.log" 2>/dev/null; then
+            echo "⚠️  Potential hardcoded secrets found"
+          fi
+
+          # Check for proper error handling
+          if ! grep -r "if err != nil" . --include="*.go"; then
+            echo "⚠️  Check error handling in code"
+          fi
+
+          echo "✅ Basic security checks completed"
+
+      - name: Validation Summary
+        run: |
+          echo "✅ All validation checks passed!"
+          echo "📦 Binary built successfully"
+          echo "🐳 Container builds and runs"
+          echo "🔒 Security checks completed"
+
+  build-and-push:
+    needs: [validate, test, golangci-lint, govulncheck]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build Go binary
+        run: |
+          go build -v -ldflags="-s -w" -o bin/catalog-service main.go
+          echo "✅ Go binary built successfully"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build Summary
+        run: |
+          echo "✅ Build and push completed successfully!"
+          echo "🐳 Docker image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
+          echo "🏷️  Tags: ${{ steps.meta.outputs.tags }}"
+
+  release:
+    needs: [validate, test, golangci-lint, govulncheck]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build release binaries
+        run: |
+          mkdir -p dist
+          GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/catalog-service-linux-amd64 main.go
+          GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/catalog-service-darwin-amd64 main.go
+          GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/catalog-service-darwin-arm64 main.go
+          echo "✅ Release binaries built successfully"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "✅ Release created successfully!"
+          echo "📦 Release binaries available in dist/"
+          echo "🏷️  Tag: ${GITHUB_REF#refs/tags/}"

@@ -1,0 +1,75 @@
+{
+  "name": "Go Retail Catalog Service",
+  "image": "mcr.microsoft.com/devcontainers/go:1.24",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-vscode.vscode-json",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "ms-vscode.makefile-tools",
+        "streetsidesoftware.code-spell-checker"
+      ],
+      "settings": {
+        "go.toolsManagement.checkForUpdates": "local",
+        "go.useLanguageServer": true,
+        "go.gopath": "/go",
+        "go.goroot": "/usr/local/go",
+        "go.lintTool": "golangci-lint",
+        "go.lintFlags": ["--fast"],
+        "go.formatTool": "goimports",
+        "go.testFlags": ["-v"],
+        "go.buildTags": "",
+        "go.testTimeout": "30s",
+        "go.coverOnSave": true,
+        "go.coverOnTestPackage": true,
+        "go.coverOnSingleTest": true,
+        "go.coverOnTestFile": true,
+        "go.coverOnTestFunction": true,
+        "go.coverOnTestRun": true,
+        "go.coverOnTestDebug": true,
+        "go.coverOnTestOutput": true,
+        "go.coverOnTestError": true,
+        "go.coverOnTestFail": true,
+        "go.coverOnTestPass": true,
+        "go.coverOnTestSkip": true,
+        "go.coverOnTestBench": true,
+        "go.coverOnTestExample": true,
+        "go.coverOnTestMain": true,
+        "go.coverOnTestSubtest": true,
+        "go.coverOnTestT": true,
+        "go.coverOnTestB": true,
+        "go.coverOnTestF": true,
+        "go.coverOnTestM": true,
+        "go.coverOnTestP": true,
+        "go.coverOnTestS": true,
+        "go.coverOnTestU": true,
+        "go.coverOnTestV": true,
+        "go.coverOnTestW": true,
+        "go.coverOnTestX": true,
+        "go.coverOnTestY": true,
+        "go.coverOnTestZ": true
+      }
+    }
+  },
+  "forwardPorts": [8080],
+  "portsAttributes": {
+    "8080": {
+      "label": "Retail Catalog Service",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/scripts/postCreate.sh",
+  "remoteUser": "vscode",
+  "mounts": [
+    "source=${localWorkspaceFolder}/.devcontainer/go.mod.cache,target=/go/pkg/mod,type=bind,consistency=cached"
+  ],
+  "containerEnv": {
+    "RETAIL_CATALOG_PERSISTENCE_PROVIDER": "in-memory"
+  }
+}
