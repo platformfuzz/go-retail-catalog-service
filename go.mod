@@ -106,7 +106,7 @@ require (
 	github.com/prometheus/procfs v0.16.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/ugorji/go/codec v1.3.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.59.0
+	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.62.0
 	go.opentelemetry.io/contrib/propagators/aws v1.34.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.37.0
 	golang.org/x/crypto v0.39.0 // indirect
