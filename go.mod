@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/sethvargo/go-envconfig v0.1.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	github.com/testcontainers/testcontainers-go v0.35.0
 	github.com/zsais/go-gin-prometheus v1.0.2
 	go.opentelemetry.io/contrib/detectors/aws/ec2 v1.37.0
