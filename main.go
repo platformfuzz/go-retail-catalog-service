@@ -37,7 +37,7 @@ import (
 	"github.com/sethvargo/go-envconfig/pkg/envconfig"
 	ginprometheus "github.com/zsais/go-gin-prometheus"
 
-	"go.opentelemetry.io/contrib/detectors/aws/ec2"
+	"go.opentelemetry.io/contrib/detectors/aws/ec2/v2"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.opentelemetry.io/contrib/propagators/aws/xray"
 	"go.opentelemetry.io/otel"
