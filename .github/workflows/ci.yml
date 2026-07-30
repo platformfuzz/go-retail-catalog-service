@@ -22,32 +22,62 @@ permissions:
   packages: write
 
 jobs:
-  golangci-lint:
-    uses: actionsforge/actions-golangci-lint/.github/workflows/golangci-lint.yml@v0
-
+  # Fail fast: do not run the rest of CI when known vulns are present.
   govulncheck:
     uses: actionsforge/actions-govulncheck/.github/workflows/govulncheck.yml@v0
 
+  golangci-lint:
+    needs: [govulncheck]
+    uses: actionsforge/actions-golangci-lint/.github/workflows/golangci-lint.yml@v0
+
   test:
+    needs: [govulncheck]
     uses: actionsforge/actions-go-test/.github/workflows/go-test.yml@v0
     with:
       test-pattern: "./..."
 
   validate:
+    needs: [govulncheck]
     uses: actionsforge/actions/.github/workflows/go-mod-tidy-build.yml@main
     with:
       go-version: "1.25"
       build-command: go build -v -o bin/catalog-service main.go
 
   validate-image:
+    needs: [govulncheck]
     uses: actionsforge/actions/.github/workflows/docker-image-validate.yml@main
     with:
       image-tag: "retail-catalog-service:test"
       # Match prior CI: prove the image builds; Trivy stays opt-in until the base is hardened.
       scan-enabled: false
 
+  # Single required status for branch protection / auto-merge.
+  ci:
+    name: CI
+    needs: [govulncheck, golangci-lint, test, validate, validate-image]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require all checks to pass
+        run: |
+          set -euo pipefail
+          results=(
+            "${{ needs.govulncheck.result }}"
+            "${{ needs.golangci-lint.result }}"
+            "${{ needs.test.result }}"
+            "${{ needs.validate.result }}"
+            "${{ needs.validate-image.result }}"
+          )
+          for r in "${results[@]}"; do
+            if [ "$r" != "success" ]; then
+              echo "One or more required jobs did not succeed: ${results[*]}"
+              exit 1
+            fi
+          done
+          echo "All required CI jobs succeeded"
+
   build-and-push:
-    needs: [validate, validate-image, test, golangci-lint, govulncheck]
+    needs: [ci]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     permissions:
       contents: write
@@ -59,7 +89,7 @@ jobs:
     secrets: inherit
 
   release:
-    needs: [validate, validate-image, test, golangci-lint, govulncheck]
+    needs: [ci]
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
