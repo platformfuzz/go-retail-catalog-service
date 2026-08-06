@@ -7,7 +7,7 @@ toolchain go1.25.12
 require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-sql-driver/mysql v1.10.0
-	github.com/sethvargo/go-envconfig v0.1.1
+	github.com/sethvargo/go-envconfig v1.4.3
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.43.0
 	github.com/zsais/go-gin-prometheus v1.0.3
