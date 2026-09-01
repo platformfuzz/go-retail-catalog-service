@@ -13,7 +13,7 @@ require (
 	github.com/zsais/go-gin-prometheus v1.0.3
 	go.opentelemetry.io/contrib/detectors/aws/ec2/v2 v2.5.2
 	go.opentelemetry.io/otel v1.46.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.45.0
+	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.46.0
 	go.opentelemetry.io/otel/sdk v1.46.0
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/driver/sqlite v1.6.0
