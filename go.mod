@@ -140,7 +140,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.71.0
-	go.opentelemetry.io/contrib/propagators/aws v1.45.0
+	go.opentelemetry.io/contrib/propagators/aws v1.46.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.46.0
 	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
