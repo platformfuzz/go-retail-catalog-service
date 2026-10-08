@@ -40,7 +40,7 @@ jobs:
     needs: [govulncheck]
     uses: actionsforge/actions/.github/workflows/go-mod-tidy-build.yml@main
     with:
-      go-version: "1.25"
+      go-version: "1.26"
       build-command: go build -v -o bin/catalog-service main.go
 
   validate-image:
@@ -95,7 +95,7 @@ jobs:
       contents: write
     uses: actionsforge/actions/.github/workflows/go-binary-release.yml@main
     with:
-      go-version: "1.25"
+      go-version: "1.26"
       binary-name: catalog-service
       package: main.go
     secrets: inherit
