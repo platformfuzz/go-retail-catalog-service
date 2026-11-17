@@ -8,7 +8,7 @@ require (
 	github.com/sethvargo/go-envconfig v1.4.3
 	github.com/stretchr/testify v1.12.1
 	github.com/testcontainers/testcontainers-go v0.45.0
-	github.com/zsais/go-gin-prometheus v1.0.3
+	github.com/zsais/go-gin-prometheus v1.0.4
 	go.opentelemetry.io/contrib/detectors/aws/ec2/v2 v2.6.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0
